@@ -1,28 +1,56 @@
-FROM php:8.2-apache
+FROM php:8.1-apache
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-  git unzip zip libicu-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev mariadb-client \
-  libzip-dev && \
-  docker-php-ext-configure gd --with-jpeg --with-freetype && \
-  docker-php-ext-install intl pdo pdo_mysql gd opcache zip
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libzip-dev \
+    default-mysql-client \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip opcache
 
-# Enable Apache rewrite
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install Composer
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
- && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
- && php -r "unlink('composer-setup.php');"
+# Copy composer files
+COPY composer.json ./
 
-# Download and install Open Social
-RUN composer create-project goalgorilla/open_social /var/www/html --no-interaction
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html && chmod -R 755 /var/www/html
+# Copy application files
+COPY . .
 
-EXPOSE 80
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
+# Configure Apache
+RUN echo '<VirtualHost *:${PORT}>\n\
+    DocumentRoot /var/www/html/web\n\
+    <Directory /var/www/html/web>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+# Update Apache ports configuration
+RUN sed -i 's/Listen 80/Listen ${PORT}/' /etc/apache2/ports.conf
+
+# Expose port
+EXPOSE ${PORT}
+
+# Start Apache
 CMD ["apache2-foreground"]
