@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: pupani-community
+    env: docker
+    plan: free
+    buildCommand: "composer install --no-interaction --prefer-dist --no-dev && php -v"
+    startCommand: "apache2-foreground"
+    envVars:
+      - key: DRUPAL_DB_HOST
+        fromService: pupani-db
+      - key: DRUPAL_DB_USER
+        fromService: pupani-db
+      - key: DRUPAL_DB_PASSWORD
+        fromService: pupani-db
+      - key: DRUPAL_DB_NAME
+        fromService: pupani-db
+    domains:
+      - community.pupani.com
+
+  - type: pserv
+    name: pupani-db
+    plan: free
+    env: docker
+    runtime: mysql
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
