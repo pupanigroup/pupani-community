@@ -1,0 +1,22 @@
+{
+  "name": "pupani/open-social-community",
+  "description": "Pupani Co online community powered by Drupal Open Social",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "drupal/core-recommended": "^10.2",
+    "drupal/core-composer-scaffold": "^10.2",
+    "drupal/core-project-message": "^10.2",
+    "goalgorilla/open_social": "^12.0"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "scripts": {
+    "post-install-cmd": [
+      "Drupal\\Core\\Composer\\Composer::scaffold"
+    ],
+    "post-update-cmd": [
+      "Drupal\\Core\\Composer\\Composer::scaffold"
+    ]
+  }
+}
